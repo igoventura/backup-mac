@@ -26,7 +26,7 @@ Creates a backup on your Desktop.
 
 | Step | What | Interactive? |
 |------|------|:---:|
-| 1 | Brewfile — all top-level brew formulae + casks | Auto |
+| 1 | Brewfile — all top-level brew formulae + casks | fzf |
 | 2 | Mac Apps — from `/Applications` and `~/Applications` | fzf |
 | 3 | Fonts — from `~/Library/Fonts` and `/Library/Fonts` | fzf |
 | 4 | Dotfiles — `.zshrc`, `.gitconfig`, `.ssh/config`, `~/.config/`, etc. | fzf |
@@ -63,13 +63,31 @@ Defaults: Brewfile and dotfiles default to **Yes**. Everything else defaults to 
 
 ### `validate-backup.sh`
 
-Check a zip file's integrity.
+Check a zip file's integrity and preview contents.
 
 ```
 ./validate-backup.sh ~/Desktop/backup-2026-06-20-143022.zip.part-aa
 ```
 
 Checks: gzip integrity, tar readability, entry count, category coverage.
+
+Tree views for: Claude config files, dotfiles, Mac Apps list (`apps.txt`), and Brew apps (`Brewfile`). Uses the `tree` command if installed (prompts to `brew install tree` on first run), with a depth-indented fallback.
+
+Sample tree output:
+
+```
+── Claude config ──
+    └── .claude
+        ├── agents
+        │   └── orchestrator.agent.md
+        ├── CLAUDE.md
+        └── settings.json
+
+── Dotfiles ──
+    ├── .zprofile
+    ├── .zshenv
+    └── .zshrc
+```
 
 ### `validate-restore.sh`
 
