@@ -47,9 +47,42 @@ ensure_fzf() {
 }
 
 ensure_brew() {
-  if ! command -v brew &>/dev/null; then
-    error "Homebrew is required for restoring Brewfile. Install from https://brew.sh"
+  if command -v brew &>/dev/null; then
+    return
   fi
+  echo "→ Homebrew is required to restore packages from Brewfile."
+  echo -n "→ Install Homebrew now? [Y/n] "
+  read -r ans
+  if [[ "$ans" =~ ^[Nn] ]]; then
+    warn "Skipping Homebrew install. You'll need to install Brewfile packages manually."
+    return 1
+  fi
+  info "Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  # Add to PATH for this session if needed.
+  if [[ -f /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [[ -f /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+  fi
+  ok "Homebrew installed."
+}
+
+ensure_git() {
+  if command -v git &>/dev/null; then
+    return
+  fi
+  echo "→ Git is required for restoring projects."
+  if command -v brew &>/dev/null; then
+    echo -n "→ Install git via Homebrew? [Y/n] "
+    read -r ans
+    if [[ ! "$ans" =~ ^[Nn] ]]; then
+      brew install git
+      ok "Git installed."
+      return
+    fi
+  fi
+  warn "Git not found. Run: xcode-select --install  (or  brew install git)"
 }
 
 # ---------- resolve_backup ----------
@@ -278,6 +311,7 @@ main() {
 
   ensure_fzf
   ensure_brew
+  ensure_git
 
   resolve_backup "$BACKUP"
   echo ""
