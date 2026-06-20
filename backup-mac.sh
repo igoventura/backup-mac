@@ -120,14 +120,53 @@ PROJECT_ROOTS=(
 # ---------- category functions ----------
 
 brewfile() {
-  info "Brewfile: dumping all top-level formulae and casks..."
   if ! command -v brew &>/dev/null; then
     warn "Homebrew not found. Skipping Brewfile."
     return
   fi
-  brew bundle dump --describe --file="$BACKUP_DIR/Brewfile"
-  ok "Brewfile: written to $BACKUP_DIR/Brewfile"
-  info "Brewfile: edit this file later to remove anything you don't want before restoring with 'brew bundle install'."
+
+  local tmp selected
+  tmp=$(mktemp)
+
+  # Gather top-level formulae.
+  brew leaves 2>/dev/null | while IFS= read -r f; do
+    [[ -n "$f" ]] && echo "brew: $f"
+  done >> "$tmp"
+
+  # Gather casks.
+  brew list --cask 2>/dev/null | while IFS= read -r c; do
+    [[ -n "$c" ]] && echo "cask: $c"
+  done >> "$tmp"
+
+  # Show both types in one fzf session.
+  info "Brewfile: select formulae and casks to keep."
+  selected=$(mktemp)
+  run_category "Brewfile" "$selected" < "$tmp"
+  rm -f "$tmp"
+
+  # Generate Brewfile from selections.
+  local kept=0
+  {
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      local type="${line%%: *}"
+      local name="${line#*: }"
+      if [[ "$type" == "cask" ]]; then
+        echo "cask \"$name\""
+      else
+        echo "brew \"$name\""
+      fi
+      kept=$((kept + 1))
+    done < "$selected"
+  } > "$BACKUP_DIR/Brewfile"
+
+  if [[ "$kept" -gt 0 ]]; then
+    ok "Brewfile: $kept entries written to $BACKUP_DIR/Brewfile"
+  else
+    warn "Brewfile: none selected."
+    rm -f "$BACKUP_DIR/Brewfile"
+  fi
+  rm -f "$selected"
 }
 
 mac_apps() {
